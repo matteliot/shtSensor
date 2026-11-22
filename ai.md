@@ -14,7 +14,7 @@ The code must be show-quality: idiomatic, small single-purpose types, no duplica
 
 - Edition 2021, `rust-version = "1.81"` (needed for `core::error::Error`).
 - Dependencies: `embedded-hal = "1.0.0"`; optional `defmt = "1.0"` behind a `defmt` feature that adds `#[cfg_attr(feature = "defmt", derive(defmt::Format))]` to every public data type.
-- Dev-dependencies: `embedded-hal-mock = { version = "0.11", default-features = false, features = ["eh1"] }`; on `cfg(target_os = "linux")` only, `linux-embedded-hal = { version = "0.5", default-features = false, features = ["i2c"] }` for the examples.
+- Dev-dependencies: `embedded-hal-mock = { version = "0.11", default-features = false, features = ["eh1"] }`. The example projects carry their own `linux-embedded-hal` dependency, so the library has none.
 - `lib.rs` has `#![no_std]`, `#![forbid(unsafe_code)]`, `#![deny(missing_docs)]`, `#![warn(rust_2018_idioms, missing_debug_implementations)]`.
 
 ### Protocol facts (from the SHT3x-DIS datasheet and Sensirion application notes)
@@ -110,13 +110,13 @@ Rules that keep it modular:
 
 ### Examples
 
-**Hello world.** `examples/hello-sensor/` is a standalone Cargo project (not a Cargo example target), the smallest useful program and the one to copy when starting out. Its `Cargo.toml` is a package `hello-sensor` with `publish = false` and three dependencies: `sht-sensor = { path = "../.." }`, `linux-embedded-hal = { version = "0.5", default-features = false, features = ["i2c"] }` and `chrono = { version = "0.4", default-features = false, features = ["clock"] }`. Its `src/main.rs` is about 20 lines: `fn main() -> Result<(), Box<dyn Error>>` opens `I2cdev::new("/dev/i2c-1")`, builds `Sht3x::new(i2c, Delay, Address::Low)`, then loops forever: `measure(Repeatability::High)?`, print one line `"{local time %Y-%m-%d %H:%M:%S}  {°C:6.2} °C  {%RH:6.2} %RH"` to stdout, sleep one second. A failed read ends the program with the error. Make the root `.gitignore` ignore `target/` at any depth so the nested project's build output is ignored too.
+**Hello world.** `examples/hello-sensor/` is a standalone Cargo project the smallest useful program and the one to copy when starting out. Its `Cargo.toml` is a package `hello-sensor` with `publish = false` and three dependencies: `sht-sensor = { path = "../.." }`, `linux-embedded-hal = { version = "0.5", default-features = false, features = ["i2c"] }` and `chrono = { version = "0.4", default-features = false, features = ["clock"] }`. Its `src/main.rs` is about 20 lines: `fn main() -> Result<(), Box<dyn Error>>` opens `I2cdev::new("/dev/i2c-1")`, builds `Sht3x::new(i2c, Delay, Address::Low)`, then loops forever: `measure(Repeatability::High)?`, print one line `"{local time %Y-%m-%d %H:%M:%S}  {°C:6.2} °C  {%RH:6.2} %RH"` to stdout, sleep one second. A failed read ends the program with the error. Make the root `.gitignore` ignore `target/` at any depth so the nested project's build output is ignored too.
 
-**Cargo examples.** `examples/raspberry_pi.rs` (serial number, status, then a reading every second) and `examples/periodic.rs` (a heater pulse showing its effect, then ten 1 Hz periodic readings). Each has `#[cfg(target_os = "linux")] fn main()` using `linux_embedded_hal::{I2cdev, Delay}` on `/dev/i2c-1`, and a `#[cfg(not(target_os = "linux"))] fn main()` that prints that it needs Linux.
+**More projects.** `examples/rpi/` (serial number, status, then a reading every second) and `examples/periodic/` (a heater pulse showing its effect, then ten 1 Hz periodic readings). Each is a standalone Cargo project like `hello-sensor`, with `publish = false`, path and `linux-embedded-hal` dependencies, and `src/main.rs` using `linux_embedded_hal::{I2cdev, Delay}` on `/dev/i2c-1`.
 
 ### Documentation
 
-A README covering: supported sensors, installation, quick start, an Examples section (the hello-sensor project's code, how to run it on the Pi, sample output, and the two Cargo examples), every capability with a code snippet (address, single shot, repeatability table, clock stretching, periodic, ART, heater and its caveats, status flags, alert mode and its reduced precision, serial number, the three resets), unit conversions, errors and `ModeChangeError`, platform notes (Raspberry Pi clock-stretching problems; Linux drivers that report NACK as a generic I/O error; hot-plugging; power-up time), what is not supported (SCL interface reset, low-supply timings, async), the module/type map, development commands, references and the dual license. Also a `CHANGELOG.md`, both license files, and a GitHub Actions workflow running fmt, pedantic clippy, tests, a `thumbv7em-none-eabihf` build with and without `defmt`, rustdoc with `-D warnings`, and an MSRV (1.81) check.
+A README covering: supported sensors, installation, quick start, an Examples section (the hello-sensor project's code, how to run it on the Pi, sample output, and the `rpi` and `periodic` projects), every capability with a code snippet (address, single shot, repeatability table, clock stretching, periodic, ART, heater and its caveats, status flags, alert mode and its reduced precision, serial number, the three resets), unit conversions, errors and `ModeChangeError`, platform notes (Raspberry Pi clock-stretching problems; Linux drivers that report NACK as a generic I/O error; hot-plugging; power-up time), what is not supported (SCL interface reset, low-supply timings, async), the module/type map, development commands, references and the dual license. Also a `CHANGELOG.md`, both license files, and a GitHub Actions workflow running fmt, pedantic clippy, tests, a `thumbv7em-none-eabihf` build with and without `defmt`, rustdoc with `-D warnings`, and an MSRV (1.81) check.
 
 ### Done when
 
@@ -126,7 +126,7 @@ cargo clippy --all-targets --all-features -- -D warnings -W clippy::pedantic
 cargo test
 cargo build --target thumbv7em-none-eabihf --features defmt
 RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features
-(cd examples/hello-sensor && cargo clippy --target aarch64-unknown-linux-gnu -- -D warnings -W clippy::pedantic)
+for e in hello-sensor rpi periodic; do (cd examples/$e && cargo clippy --target aarch64-unknown-linux-gnu -- -D warnings -W clippy::pedantic); done
 ```
 
 all succeed.
