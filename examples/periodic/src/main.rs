@@ -1,15 +1,16 @@
 //! Periodic measurement at 1 Hz, with a brief heater pulse first to show its effect on the readings.
 //!
 //! ```text
-//! cargo run --example periodic
+//! cd examples/periodic
+//! cargo run --release
 //! ```
 
-#[cfg(target_os = "linux")]
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use linux_embedded_hal::{Delay, I2cdev};
-    use sht_sensor::{Address, Rate, Repeatability, Sht3x};
-    use std::{thread, time::Duration};
+use std::{error::Error, thread, time::Duration};
 
+use linux_embedded_hal::{Delay, I2cdev};
+use sht_sensor::{Address, Rate, Repeatability, Sht3x};
+
+fn main() -> Result<(), Box<dyn Error>> {
     let mut sensor = Sht3x::new(I2cdev::new("/dev/i2c-1")?, Delay, Address::Low);
 
     let before = sensor.measure(Repeatability::High)?;
@@ -41,9 +42,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     sensor.stop().map_err(|failure| failure.error)?;
     Ok(())
-}
-
-#[cfg(not(target_os = "linux"))]
-fn main() {
-    eprintln!("This example talks to /dev/i2c-1 and only runs on Linux.");
 }
