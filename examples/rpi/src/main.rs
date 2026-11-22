@@ -3,15 +3,16 @@
 //! Wire the sensor to the Pi's I2C1 pins (SDA = GPIO2, SCL = GPIO3), enable I2C (`raspi-config` > Interface Options > I2C), then:
 //!
 //! ```text
-//! cargo run --example raspberry_pi
+//! cd examples/rpi
+//! cargo run --release
 //! ```
 
-#[cfg(target_os = "linux")]
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use linux_embedded_hal::{Delay, I2cdev};
-    use sht_sensor::{Address, Repeatability, Sht3x};
-    use std::{thread, time::Duration};
+use std::{error::Error, thread, time::Duration};
 
+use linux_embedded_hal::{Delay, I2cdev};
+use sht_sensor::{Address, Repeatability, Sht3x};
+
+fn main() -> Result<(), Box<dyn Error>> {
     let mut sensor = Sht3x::new(I2cdev::new("/dev/i2c-1")?, Delay, Address::Low);
 
     println!("serial number: {}", sensor.serial_number()?);
@@ -26,9 +27,4 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         thread::sleep(Duration::from_secs(1));
     }
-}
-
-#[cfg(not(target_os = "linux"))]
-fn main() {
-    eprintln!("This example talks to /dev/i2c-1 and only runs on Linux.");
 }

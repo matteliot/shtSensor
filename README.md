@@ -97,10 +97,12 @@ It stops with an error if a read fails (for example if the sensor is unplugged);
 
 ### More examples
 
-```text
-cargo run --example raspberry_pi   # single-shot readings, serial number, status
-cargo run --example periodic       # heater pulse, then 1 Hz periodic readings
-```
+Each is a standalone Cargo project too. Run one from its own folder with `cargo run --release`:
+
+| Project | What it shows |
+| --- | --- |
+| [`examples/rpi`](examples/rpi) | Serial number and status, then a reading every second. |
+| [`examples/periodic`](examples/periodic) | A heater pulse and its effect, then ten 1 Hz periodic readings. |
 
 ## Everything the sensor can do
 
@@ -307,8 +309,7 @@ All bus traffic goes through `Bus`, and all data goes through `Word`, so the CRC
 cargo test                                     # unit, integration and doc tests (mocked I2C, no hardware needed)
 cargo clippy --all-targets --all-features -- -D warnings -W clippy::pedantic
 cargo build --target thumbv7em-none-eabihf     # proves no_std
-cargo check --examples --target aarch64-unknown-linux-gnu
-(cd examples/hello-sensor && cargo check --target aarch64-unknown-linux-gnu)
+for e in hello-sensor rpi periodic; do (cd examples/$e && cargo check --target aarch64-unknown-linux-gnu); done
 ```
 
 The integration tests in [`tests/`](tests) drive the full driver against [`embedded-hal-mock`](https://docs.rs/embedded-hal-mock), checking the exact bytes on the bus and every delay. They use their own CRC implementation, so a CRC bug in the driver cannot hide itself.
