@@ -1,0 +1,11 @@
+[package]
+name = "hello-sensor"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The smallest useful sht-sensor program: print a timestamped reading every second."
+
+[dependencies]
+sht-sensor = { path = "../.." }
+linux-embedded-hal = { version = "0.5.0", default-features = false, features = ["i2c"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
