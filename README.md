@@ -11,6 +11,7 @@ This crate started as a fork of [`sht3x`](https://github.com/miek/sht3x-rs) by M
 - [Supported sensors](#supported-sensors)
 - [Installation](#installation)
 - [Quick start](#quick-start)
+- [Examples](#examples)
 - [Everything the sensor can do](#everything-the-sensor-can-do)
 - [Units and conversions](#units-and-conversions)
 - [Errors](#errors)
@@ -53,7 +54,48 @@ println!("{:.2} °C, {:.2} %RH", reading.temperature.celsius(), reading.humidity
 
 The driver takes ownership of the I2C bus and a delay provider (`release()` gives them back). To share a bus with other devices, pass a sharing wrapper such as those in [`embedded-hal-bus`](https://docs.rs/embedded-hal-bus).
 
-Runnable examples for Linux boards such as the Raspberry Pi are in [`examples/`](examples):
+## Examples
+
+Everything in [`examples/`](examples) runs on a Linux board such as a Raspberry Pi with the sensor on `/dev/i2c-1`.
+
+### Hello, sensor
+
+[`examples/hello-sensor`](examples/hello-sensor) is the smallest useful program: a standalone Cargo project that reads the sensor once a second and prints a timestamp, the temperature and the humidity. Copy the folder to start your own project (change the `sht-sensor` path dependency to the git URL from [Installation](#installation)).
+
+```rust,ignore
+let i2c = I2cdev::new("/dev/i2c-1")?;
+let mut sensor = Sht3x::new(i2c, Delay, Address::Low);
+
+loop {
+    let reading = sensor.measure(Repeatability::High)?;
+    println!(
+        "{}  {:6.2} °C  {:6.2} %RH",
+        Local::now().format("%Y-%m-%d %H:%M:%S"),
+        reading.temperature.celsius(),
+        reading.humidity.percent(),
+    );
+    thread::sleep(Duration::from_secs(1));
+}
+```
+
+Run it on the Pi:
+
+```text
+cd examples/hello-sensor
+cargo run --release
+```
+
+The output looks like this:
+
+```text
+2026-11-22 13:10:01   21.48 °C   44.12 %RH
+2026-11-22 13:10:02   21.47 °C   44.15 %RH
+2026-11-22 13:10:03   21.47 °C   44.13 %RH
+```
+
+It stops with an error if a read fails (for example if the sensor is unplugged); see [Platform notes](#platform-notes) for handling that.
+
+### More examples
 
 ```text
 cargo run --example raspberry_pi   # single-shot readings, serial number, status
@@ -266,6 +308,7 @@ cargo test                                     # unit, integration and doc tests
 cargo clippy --all-targets --all-features -- -D warnings -W clippy::pedantic
 cargo build --target thumbv7em-none-eabihf     # proves no_std
 cargo check --examples --target aarch64-unknown-linux-gnu
+(cd examples/hello-sensor && cargo check --target aarch64-unknown-linux-gnu)
 ```
 
 The integration tests in [`tests/`](tests) drive the full driver against [`embedded-hal-mock`](https://docs.rs/embedded-hal-mock), checking the exact bytes on the bus and every delay. They use their own CRC implementation, so a CRC bug in the driver cannot hide itself.
